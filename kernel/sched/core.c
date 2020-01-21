@@ -4611,7 +4611,7 @@ static int __sched_setscheduler(struct task_struct *p,
 	int reset_on_fork;
 	int queue_flags = DEQUEUE_SAVE | DEQUEUE_MOVE | DEQUEUE_NOCLOCK;
 	struct rq *rq;
-
+	printk("in set sched! 1\n");printk("in set sched! 1\n");
 	/* The pi code expects interrupts enabled */
 	BUG_ON(pi && in_interrupt());
 recheck:
@@ -4625,24 +4625,29 @@ recheck:
 		if (!valid_policy(policy))
 			return -EINVAL;
 	}
+	printk("in set sched! 2\n");
 
 	if (attr->sched_flags & ~(SCHED_FLAG_ALL | SCHED_FLAG_SUGOV))
 		return -EINVAL;
-
+	printk("in set sched! 3\n");
 #ifdef CONFIG_SCHED_CLASS_MICROQ
 	if (microq_policy(policy)) {
+		printk("in set sched! 4\n");
 		int period = microq_period_from_attr(attr);
 		int runtime = microq_runtime_from_attr(attr);
-
+		printk("in set sched! 5\n");
 		if (period == MICROQ_BANDWIDTH_UNDEFINED) {
 			if (runtime != MICROQ_BANDWIDTH_UNDEFINED)
 				return -EINVAL;
 		} else if (period < MICROQ_MIN_PERIOD) {
+			printk("in set sched! 6\n");
 			return -EINVAL;
 		} else if (runtime < MICROQ_MIN_RUNTIME &&
 		    runtime != MICROQ_BANDWIDTH_UNDEFINED) {
+			printk("in set sched! 7\n");
 			return -EINVAL;
 		}
+
 	} else
 #endif
 	{
