@@ -56,6 +56,13 @@ int sched_proc_update_handler(struct ctl_table *table, int write,
 extern unsigned int sysctl_sched_rt_period;
 extern int sysctl_sched_rt_runtime;
 
+#ifdef CONFIG_SCHED_CLASS_MICROQ
+/* micro quanta period and runtime */
+extern int sysctl_sched_microq_period;
+extern int sysctl_sched_microq_runtime;
+extern int sched_microq_timeslice;
+#endif
+
 #ifdef CONFIG_UCLAMP_TASK
 extern unsigned int sysctl_sched_uclamp_util_min;
 extern unsigned int sysctl_sched_uclamp_util_max;
@@ -99,6 +106,11 @@ extern unsigned int sysctl_sched_energy_aware;
 extern int sched_energy_aware_handler(struct ctl_table *table, int write,
 				 void __user *buffer, size_t *lenp,
 				 loff_t *ppos);
+#endif
+
+#ifdef CONFIG_SCHED_CLASS_MICROQ
+extern int sched_microq_proc_handler(struct ctl_table *table, int write,
+		void __user *buffer, size_t *lenp, loff_t *ppos);
 #endif
 
 #endif /* _LINUX_SCHED_SYSCTL_H */

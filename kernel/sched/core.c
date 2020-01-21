@@ -1236,7 +1236,7 @@ static inline int normal_prio(struct task_struct *p)
 
 	if (task_has_dl_policy(p))
 		prio = MAX_DL_PRIO-1;
-	else if (task_has_rt_policy(p))
+	else if (task_has_rt_fiforr_policy(p))
 		prio = MAX_RT_PRIO-1 - p->rt_priority;
 	else
 		prio = __normal_prio(p);
@@ -4480,6 +4480,36 @@ static struct task_struct *find_process_by_pid(pid_t pid)
  */
 #define SETPARAM_POLICY	-1
 
+#ifdef CONFIG_SCHED_CLASS_MICROQ
+
+void microq_adjust_bandwidth(struct task_struct *p);
+
+static inline int microq_period_from_attr(const struct sched_attr *attr)
+{
+	int period = (unsigned int)attr->sched_priority >> 16;
+	 /* ffff means undefined, otherwise convert from us to ns */
+	return period == 0xffff ? MICROQ_BANDWIDTH_UNDEFINED : period * 1000;
+}
+
+static inline int microq_runtime_from_attr(const struct sched_attr *attr)
+{
+	int runtime = (unsigned int)attr->sched_priority & 0xffff;
+	/* ffff means undefined, otherwise convert from us to ns */
+	return runtime == 0xffff ? MICROQ_BANDWIDTH_UNDEFINED : runtime * 1000;
+}
+
+static inline int microq_pack_bandwidth(const struct task_struct *p)
+{
+	int period = p->microq.sched_period;
+	int runtime = p->microq.sched_runtime;
+
+	period = (period == -1) ? 0xffff : period / 1000;
+	runtime = (runtime == -1) ? 0xffff : runtime / 1000;
+	return (period << 16) | runtime;
+}
+
+#endif
+
 static void __setscheduler_params(struct task_struct *p,
 		const struct sched_attr *attr)
 {
@@ -4489,6 +4519,17 @@ static void __setscheduler_params(struct task_struct *p,
 		policy = p->policy;
 
 	p->policy = policy;
+
+#ifdef CONFIG_SCHED_CLASS_MICROQ
+	if (microq_policy(policy)) {
+		p->microq.sched_period = microq_period_from_attr(attr);
+		p->microq.sched_runtime = microq_runtime_from_attr(attr);
+		p->rt_priority = DEFAULT_MICROQ_RT_PRIORITY;
+		p->normal_prio = normal_prio(p);
+		set_load_weight(p, true);
+		return;
+	}
+#endif
 
 	if (dl_policy(policy))
 		__setparam_dl(p, attr);
@@ -4525,6 +4566,13 @@ static void __setscheduler(struct rq *rq, struct task_struct *p,
 	p->prio = normal_prio(p);
 	if (keep_boost)
 		p->prio = rt_effective_prio(p, p->prio);
+
+#ifdef CONFIG_SCHED_CLASS_MICROQ
+	if (microq_policy(attr->sched_policy)) {
+		p->sched_class = &microq_sched_class;
+		return;
+	}
+#endif
 
 	if (dl_prio(p->prio))
 		p->sched_class = &dl_sched_class;
@@ -4581,17 +4629,35 @@ recheck:
 	if (attr->sched_flags & ~(SCHED_FLAG_ALL | SCHED_FLAG_SUGOV))
 		return -EINVAL;
 
-	/*
-	 * Valid priorities for SCHED_FIFO and SCHED_RR are
-	 * 1..MAX_USER_RT_PRIO-1, valid priority for SCHED_NORMAL,
-	 * SCHED_BATCH and SCHED_IDLE is 0.
-	 */
-	if ((p->mm && attr->sched_priority > MAX_USER_RT_PRIO-1) ||
-	    (!p->mm && attr->sched_priority > MAX_RT_PRIO-1))
-		return -EINVAL;
-	if ((dl_policy(policy) && !__checkparam_dl(attr)) ||
-	    (rt_policy(policy) != (attr->sched_priority != 0)))
-		return -EINVAL;
+#ifdef CONFIG_SCHED_CLASS_MICROQ
+	if (microq_policy(policy)) {
+		int period = microq_period_from_attr(attr);
+		int runtime = microq_runtime_from_attr(attr);
+
+		if (period == MICROQ_BANDWIDTH_UNDEFINED) {
+			if (runtime != MICROQ_BANDWIDTH_UNDEFINED)
+				return -EINVAL;
+		} else if (period < MICROQ_MIN_PERIOD) {
+			return -EINVAL;
+		} else if (runtime < MICROQ_MIN_RUNTIME &&
+		    runtime != MICROQ_BANDWIDTH_UNDEFINED) {
+			return -EINVAL;
+		}
+	} else
+#endif
+	{
+		/*
+		 * Valid priorities for SCHED_FIFO and SCHED_RR are
+		 * 1..MAX_USER_RT_PRIO-1, valid priority for SCHED_NORMAL,
+		 * SCHED_BATCH and SCHED_IDLE is 0.
+		 */
+		if ((p->mm && attr->sched_priority > MAX_USER_RT_PRIO-1) ||
+		    (!p->mm && attr->sched_priority > MAX_RT_PRIO-1))
+			return -EINVAL;
+		if ((dl_policy(policy) && !__checkparam_dl(attr)) ||
+		    (rt_fiforr_policy(policy) != (attr->sched_priority != 0)))
+			return -EINVAL;
+	}
 
 	/*
 	 * Allow unprivileged RT tasks to decrease priority:
@@ -4603,7 +4669,7 @@ recheck:
 				return -EPERM;
 		}
 
-		if (rt_policy(policy)) {
+		if (rt_fiforr_policy(policy)) {
 			unsigned long rlim_rtprio =
 					task_rlimit(p, RLIMIT_RTPRIO);
 
@@ -4625,6 +4691,11 @@ recheck:
 		  */
 		if (dl_policy(policy))
 			return -EPERM;
+
+#ifdef CONFIG_SCHED_CLASS_MICROQ
+		if (microq_policy(policy))
+			return -EPERM;
+#endif
 
 		/*
 		 * Treat SCHED_IDLE as nice 20. Only allow a switch to
@@ -4685,12 +4756,19 @@ recheck:
 	if (unlikely(policy == p->policy)) {
 		if (fair_policy(policy) && attr->sched_nice != task_nice(p))
 			goto change;
-		if (rt_policy(policy) && attr->sched_priority != p->rt_priority)
+		if (rt_fiforr_policy(policy) && attr->sched_priority != p->rt_priority)
 			goto change;
 		if (dl_policy(policy) && dl_param_changed(p, attr))
 			goto change;
 		if (attr->sched_flags & SCHED_FLAG_UTIL_CLAMP)
 			goto change;
+
+#ifdef CONFIG_SCHED_CLASS_MICROQ
+		if (microq_policy(policy)) {
+			__setscheduler_params(p, attr);
+			microq_adjust_bandwidth(p);
+		}
+#endif
 
 		p->sched_reset_on_fork = reset_on_fork;
 		task_rq_unlock(rq, p, &rf);
@@ -4704,7 +4782,7 @@ change:
 		 * Do not allow realtime tasks into groups that have no runtime
 		 * assigned.
 		 */
-		if (rt_bandwidth_enabled() && rt_policy(policy) &&
+		if (rt_bandwidth_enabled() && rt_fiforr_policy(policy) &&
 				task_group(p)->rt_bandwidth.rt_runtime == 0 &&
 				!task_group_is_autogroup(task_group(p))) {
 			task_rq_unlock(rq, p, &rf);
@@ -4759,7 +4837,21 @@ change:
 		 * itself.
 		 */
 		new_effective_prio = rt_effective_prio(p, newprio);
+#ifdef CONFIG_SCHED_CLASS_MICROQ
+		/*
+		 * A microq task overloads priorities and pretends to be a cfs task. We need
+		 * a stronger check here.
+		 *
+		 * Priorities has no effect on microq tasks, but the microq class still needs to
+		 * function as a priority inheritance passthrough, thus we cannot simply turn
+		 * off all pi code.
+		 */
+
+		if (!microq_policy(policy) && !microq_policy(oldpolicy) &&
+		    new_effective_prio == oldprio)
+#else
 		if (new_effective_prio == oldprio)
+#endif
 			queue_flags &= ~DEQUEUE_MOVE;
 	}
 
@@ -5089,8 +5181,13 @@ SYSCALL_DEFINE2(sched_getparam, pid_t, pid, struct sched_param __user *, param)
 	if (retval)
 		goto out_unlock;
 
-	if (task_has_rt_policy(p))
+	if (task_has_rt_fiforr_policy(p))
 		lp.sched_priority = p->rt_priority;
+#ifdef CONFIG_SCHED_CLASS_MICROQ
+	else if (microq_policy(p->policy))
+		lp.sched_priority = microq_pack_bandwidth(p);
+#endif
+
 	rcu_read_unlock();
 
 	/*
@@ -5176,8 +5273,12 @@ SYSCALL_DEFINE4(sched_getattr, pid_t, pid, struct sched_attr __user *, uattr,
 		attr.sched_flags |= SCHED_FLAG_RESET_ON_FORK;
 	if (task_has_dl_policy(p))
 		__getparam_dl(p, &attr);
-	else if (task_has_rt_policy(p))
+	else if (task_has_rt_fiforr_policy(p))
 		attr.sched_priority = p->rt_priority;
+#ifdef CONFIG_SCHED_CLASS_MICROQ
+	else if (microq_policy(p->policy))
+		attr.sched_priority = microq_pack_bandwidth(p);
+#endif
 	else
 		attr.sched_nice = task_nice(p);
 
@@ -6446,6 +6547,9 @@ void __init sched_init(void)
 		init_cfs_rq(&rq->cfs);
 		init_rt_rq(&rq->rt);
 		init_dl_rq(&rq->dl);
+#ifdef CONFIG_SCHED_CLASS_MICROQ
+		init_microq_rq(&rq->microq);
+#endif
 #ifdef CONFIG_FAIR_GROUP_SCHED
 		root_task_group.shares = ROOT_TASK_GROUP_LOAD;
 		INIT_LIST_HEAD(&rq->leaf_cfs_rq_list);

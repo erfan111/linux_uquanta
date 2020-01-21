@@ -1586,7 +1586,7 @@ pick_next_task_rt(struct rq *rq, struct task_struct *prev, struct rq_flags *rf)
 	 * utilization. We only care of the case where we start to schedule a
 	 * rt task
 	 */
-	if (rq->curr->sched_class != &rt_sched_class)
+	if (rq->curr->sched_class != &rt_sched_class && rq->curr->sched_class != &microq_sched_class)
 		update_rt_rq_load_avg(rq_clock_pelt(rq), rq, 0);
 
 	return p;
@@ -2371,7 +2371,11 @@ static unsigned int get_rr_interval_rt(struct rq *rq, struct task_struct *task)
 }
 
 const struct sched_class rt_sched_class = {
+#ifdef CONFIG_SCHED_CLASS_MICROQ
+	.next			= &microq_sched_class,
+#else
 	.next			= &fair_sched_class,
+#endif
 	.enqueue_task		= enqueue_task_rt,
 	.dequeue_task		= dequeue_task_rt,
 	.yield_task		= yield_task_rt,
