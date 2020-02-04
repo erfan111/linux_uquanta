@@ -10,18 +10,21 @@
 
 int main(int argc, char **argv)
 {
-    int i;
+    int i, pid, res, policy;
     struct sched_param param;
-    int policy = sched_getscheduler(getpid());
-    pid_t p = getpid();
-    param.sched_priority = 0xffffffff;
-    printf("policy = %d\n", policy);
-    i = syscall(144, atoi(argv[1]), 7, &param);
-    printf("set sched returned %d (%d)\n", i, errno);
-    for(i=0;i < 10000000000;i++)
+    param.sched_priority = 0;//  0x75303A98;
+    for(i=1; i < argc;i++)
     {
-        //if(!(i%10000))
-	  //  printf("%d\n", i);
+	pid = atoi(argv[i]);
+        policy = sched_getscheduler(pid);
+        printf("policy = %d\n", policy);
+        res = syscall(144, pid, 0, &param);
+        printf("set sched returned %d (%d)\n", res, errno);
+        //for(i=0;i < 10000000000;i++)
+        //{
+           //if(!(i%10000))
+	    //  printf("%d\n", i);
+        //}
     }
     return 0;
 
