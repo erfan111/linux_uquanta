@@ -11,11 +11,17 @@
 int main(int argc, char **argv)
 {
     int i, pid, res, policy;
+    char str[20];
+    u_int32_t params = 0;
+
     struct sched_param param;
-    param.sched_priority = 0xC350C350; //  0xC3509C40; // 50-40
-    for(i=1; i < argc;i++)
+    sprintf(str, "0x%s%s", argv[2],argv[1]);
+    params = (u_int32_t) strtol(str, NULL, 0);
+    printf("hex number is %s, %u, %lu\n", str, params, strtol("0xC3509C40", NULL, 0));
+    param.sched_priority = params; //  0xC3509C40; // 50-40
+    for(i=3; i < argc;i++)
     {
-	pid = atoi(argv[i]);
+    	pid = atoi(argv[i]);
         policy = sched_getscheduler(pid);
         printf("policy = %d\n", policy);
         res = syscall(144, pid, 7, &param);

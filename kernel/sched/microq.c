@@ -392,11 +392,16 @@ static struct task_struct *pick_next_task_microq(struct rq *rq, struct task_stru
 
 	if (!microq_rq->microq_nr_running)
 		return NULL;
-
+	microq_rq->total_count++;	 // =e
 	if (microq_timer_needed(microq_rq)) {
 		check_microq_timer(rq);
-		if (microq_rq->microq_throttled)
+		if (microq_rq->microq_throttled) { 
+			microq_rq->throttle_count++;  // =e
+			if(!(microq_rq->throttle_count % 1000))
+				printk("cpu %d throttle count %d/%d\n", rq->cpu, microq_rq->throttle_count, microq_rq->total_count);
 			return NULL;
+
+		}
 	} else {
 		microq_rq->microq_throttled = 0;
 	}
@@ -439,36 +444,45 @@ static int microq_find_rq(struct task_struct *p)
 
 	if (!cpumask_test_cpu(pcpu, p->cpus_ptr))
 		pcpu = cpumask_first(p->cpus_ptr);
-
+	// printk("WARN1 pcpu=%d\n", pcpu);
 	for (cpu = pcpu;;) {
 		/* search from current cpu to avoid crowding lower numbered cpus */
 		cpu = cpumask_next(cpu, p->cpus_ptr);
-		if (cpu >= nr_cpu_ids)
+		// printk("WARN2 cpu=%d nrcpuids = %d\n", cpu, nr_cpu_ids);
+		if (cpu >= nr_cpu_ids){
 			cpu = cpumask_first(p->cpus_ptr);
+			// printk("WARN2.5 cpu=%d nrcpuids = %d\n", cpu, nr_cpu_ids);
+		}
 		if (cpu == pcpu)
 			break;
 
 		for_each_cpu(tcpu, topology_sibling_cpumask(cpu)) {
+			// printk("WARN3 tcpu=%d\n", tcpu);
 			if (!available_idle_cpu(tcpu))
 				break;
 		}
+		// printk("WARN3.5 tcpu=%d nrcpuids = %d\n", tcpu, nr_cpu_ids);
 		if (tcpu >= nr_cpu_ids)
 			return cpu;
 
 		if (idle_ht == -1) {
 			rq = cpu_rq(cpu);
 			if (idle_cpu(cpu)) {
+				// printk("WARN4 idle cpu=%d\n", cpu);
 				idle_ht = cpu;
 			} else if (lowprio_cpu == -1) {
 				if (rq->nr_running == rq->cfs.h_nr_running) {
+					// printk("WARN5 lowprio cpu=%d\n", cpu);
 					lowprio_cpu = cpu;
 				} else if (rq->microq.microq_nr_running + 1 < low_nmicroq) {
+					// printk("WARN6 microq cpu=%d\n", cpu);
 					low_nmicroq_cpu = cpu;
 					low_nmicroq = rq->microq.microq_nr_running;
 				}
 			}
 		}
 	}
+	// printk("WARN7 idle_ht=%d, lowprio=%d, nmicroq=%d\n", idle_ht, lowprio_cpu, low_nmicroq_cpu);
 	if (idle_ht != -1)
 		return idle_ht;
 	if (lowprio_cpu != -1)
@@ -483,6 +497,7 @@ static struct rq *microq_find_potential_rq(struct task_struct *task, struct rq *
 	int cpu;
 
 	cpu = microq_find_rq(task);
+	// printk("WARN:F cpu=%d \n", cpu);
 
 	if (cpu == -1)
 		return NULL;
@@ -506,7 +521,8 @@ static struct rq *microq_find_potential_rq(struct task_struct *task, struct rq *
 			t_rq = NULL;
 		}
 	}
-
+	// if (t_rq) // =e
+	// 	printk("selecting potential cpu %d for task %d\n", cpu, task->pid);
 	return t_rq;
 }
 
@@ -597,6 +613,8 @@ static void rq_online_microq(struct rq *rq)
 	microq_rq->quanta_start = 0;
 	microq_rq->delta_exec_uncharged = 0;
 	microq_rq->delta_exec_total = 0;
+	microq_rq->throttle_count = 0;  // =e
+	microq_rq->total_count = 0;  // =e
 }
 
 static int select_task_rq_microq(struct task_struct *p, int cpu, int sd_flag, int flags)
@@ -626,6 +644,7 @@ static int select_task_rq_microq(struct task_struct *p, int cpu, int sd_flag, in
 	rcu_read_unlock();
 
 out:
+	// printk("selecting cpu %d for task %d\n", cpu, p->pid);
 	return cpu;
 }
 
@@ -633,6 +652,7 @@ out:
 
 static void switched_to_microq(struct rq *rq, struct task_struct *p)
 {
+	printk("switched to microquanta cpu %d for task %d\n", rq->cpu, p->pid);
 #ifdef CONFIG_SMP
 	if (p->on_rq && rq->curr != p) {
 		rq->microq.last_push_failed = 0;

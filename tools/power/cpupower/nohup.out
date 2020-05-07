@@ -1,0 +1,26 @@
+stress-ng: info:  [1904] defaulting to a 86400 second (1 day, 0.00 secs) run per stressor
+stress-ng: info:  [1904] dispatching hogs: 30 cpu
+stress-ng: info:  [1904] successful run completed in 2.22s
+stress-ng: info:  [1936] defaulting to a 86400 second (1 day, 0.00 secs) run per stressor
+stress-ng: info:  [1936] dispatching hogs: 30 cpu
+stress-ng: error: [1936] process 1937 (stress-ng-cpu) terminated with an error, exit status=5 (killed by signal)
+stress-ng: error: [1936] process 1938 (stress-ng-cpu) terminated with an error, exit status=5 (killed by signal)
+stress-ng: error: [1936] process 1939 (stress-ng-cpu) terminated with an error, exit status=5 (killed by signal)
+stress-ng: error: [1936] process 1940 (stress-ng-cpu) terminated with an error, exit status=5 (killed by signal)
+stress-ng: error: [1936] process 1941 (stress-ng-cpu) terminated with an error, exit status=5 (killed by signal)
+stress-ng: error: [1936] process 1942 (stress-ng-cpu) terminated with an error, exit status=5 (killed by signal)
+stress-ng: error: [1936] process 1943 (stress-ng-cpu) terminated with an error, exit status=5 (killed by signal)
+stress-ng: error: [1936] process 1944 (stress-ng-cpu) terminated with an error, exit status=5 (killed by signal)
+stress-ng: error: [1936] process 1945 (stress-ng-cpu) terminated with an error, exit status=5 (killed by signal)
+stress-ng: error: [1936] process 1949 (stress-ng-cpu) terminated with an error, exit status=5 (killed by signal)
+stress-ng: error: [1936] process 1951 (stress-ng-cpu) terminated with an error, exit status=5 (killed by signal)
+stress-ng: error: [1936] process 1953 (stress-ng-cpu) terminated with an error, exit status=5 (killed by signal)
+stress-ng: error: [1936] process 1954 (stress-ng-cpu) terminated with an error, exit status=5 (killed by signal)
+stress-ng: error: [1936] process 1955 (stress-ng-cpu) terminated with an error, exit status=5 (killed by signal)
+stress-ng: error: [1936] process 1956 (stress-ng-cpu) terminated with an error, exit status=5 (killed by signal)
+stress-ng: error: [1936] process 1957 (stress-ng-cpu) terminated with an error, exit status=5 (killed by signal)
+stress-ng: error: [1936] process 1960 (stress-ng-cpu) terminated with an error, exit status=5 (killed by signal)
+stress-ng: error: [1936] process 1962 (stress-ng-cpu) terminated with an error, exit status=5 (killed by signal)
+stress-ng: error: [1936] process 1964 (stress-ng-cpu) terminated with an error, exit status=5 (killed by signal)
+stress-ng: error: [1936] process 1965 (stress-ng-cpu) terminated with an error, exit status=5 (killed by signal)
+stress-ng: info:  [1936] unsuccessful run completed in 56479.45s (15 hours, 41 mins, 19.45 secs)

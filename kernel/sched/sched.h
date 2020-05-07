@@ -734,6 +734,9 @@ struct microq_rq {
 	u64 delta_exec_total;
 	unsigned int period_count;
 	unsigned int periods_to_jiffies;
+	// =e
+	unsigned int throttle_count;
+	unsigned int total_count;
 };
 #endif
 
