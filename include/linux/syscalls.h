@@ -669,6 +669,13 @@ asmlinkage long sys_sched_rr_get_interval(pid_t pid,
 asmlinkage long sys_sched_rr_get_interval_time32(pid_t pid,
 						 struct old_timespec32 __user *interval);
 
+// =e
+asmlinkage long sys_microq_getparams(pid_t pid, unsigned int *period,
+						 unsigned int *runtime);
+
+asmlinkage long sys_microq_setparams(pid_t pid, unsigned int period,
+						 unsigned int runtime);
+
 /* kernel/signal.c */
 asmlinkage long sys_restart_syscall(void);
 asmlinkage long sys_kill(pid_t pid, int sig);

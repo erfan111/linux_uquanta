@@ -392,13 +392,9 @@ static struct task_struct *pick_next_task_microq(struct rq *rq, struct task_stru
 
 	if (!microq_rq->microq_nr_running)
 		return NULL;
-	microq_rq->total_count++;	 // =e
 	if (microq_timer_needed(microq_rq)) {
 		check_microq_timer(rq);
 		if (microq_rq->microq_throttled) { 
-			microq_rq->throttle_count++;  // =e
-			if(!(microq_rq->throttle_count % 1000))
-				printk("cpu %d throttle count %d/%d\n", rq->cpu, microq_rq->throttle_count, microq_rq->total_count);
 			return NULL;
 
 		}
@@ -613,8 +609,6 @@ static void rq_online_microq(struct rq *rq)
 	microq_rq->quanta_start = 0;
 	microq_rq->delta_exec_uncharged = 0;
 	microq_rq->delta_exec_total = 0;
-	microq_rq->throttle_count = 0;  // =e
-	microq_rq->total_count = 0;  // =e
 }
 
 static int select_task_rq_microq(struct task_struct *p, int cpu, int sd_flag, int flags)

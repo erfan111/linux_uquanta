@@ -4627,7 +4627,6 @@ recheck:
 		if (!valid_policy(policy))
 			return -EINVAL;
 	}
-	printk("%d in set sched! 1\n", p->pid);
 
 	if (attr->sched_flags & ~(SCHED_FLAG_ALL | SCHED_FLAG_SUGOV))
 		return -EINVAL;
@@ -4665,13 +4664,12 @@ recheck:
 		    (rt_fiforr_policy(policy) != (attr->sched_priority != 0)))
 			return -EINVAL;
 	}
-	printk("%d in set sched! 2\n", p->pid);
 
 	/*
 	 * Allow unprivileged RT tasks to decrease priority:
 	 */
 	if (user && !capable(CAP_SYS_NICE)) {
-		printk("%d in set sched! 3\n", p->pid);
+		//printk("%d in set sched! 3\n", p->pid);
 		if (fair_policy(policy)) {
 			if (attr->sched_nice < task_nice(p) &&
 			    !can_nice(p, attr->sched_nice))
@@ -4723,7 +4721,7 @@ recheck:
 		if (p->sched_reset_on_fork && !reset_on_fork)
 			return -EPERM;
 	}
-	printk("%d in set sched! 4\n", p->pid);
+	//printk("%d in set sched! 4\n", p->pid);
 	if (user) {
 		printk("%d in set sched! 5\n", p->pid);
 		if (attr->sched_flags & SCHED_FLAG_SUGOV)
@@ -4733,15 +4731,15 @@ recheck:
 		if (retval)
 			return retval;
 	}
-	printk("%d in set sched! 6\n", p->pid);
+	//printk("%d in set sched! 6\n", p->pid);
 	/* Update task specific "requested" clamps */
 	if (attr->sched_flags & SCHED_FLAG_UTIL_CLAMP) {
-		printk("%d in set sched! 7\n", p->pid);
+		//printk("%d in set sched! 7\n", p->pid);
 		retval = uclamp_validate(p, attr);
 		if (retval)
 			return retval;
 	}
-	printk("%d in set sched! 8\n", p->pid);
+	//printk("%d in set sched! 8\n", p->pid);
 	/*
 	 * Make sure no PI-waiters arrive (or leave) while we are
 	 * changing the priority of the task:
@@ -4776,18 +4774,18 @@ recheck:
 
 #ifdef CONFIG_SCHED_CLASS_MICROQ
 		if (microq_policy(policy)) {
-			printk("%d in set sched! 9\n", p->pid);
+			//printk("%d in set sched! 9\n", p->pid);
 			__setscheduler_params(p, attr);
 			microq_adjust_bandwidth(p);
 		}
 #endif
-		printk("%d in set sched! 10\n", p->pid);
+		//printk("%d in set sched! 10\n", p->pid);
 		p->sched_reset_on_fork = reset_on_fork;
 		task_rq_unlock(rq, p, &rf);
 		return 0;
 	}
 change:
-	printk("%d in set sched! 11\n", p->pid);
+	//printk("%d in set sched! 11\n", p->pid);
 	if (user) {
 #ifdef CONFIG_RT_GROUP_SCHED
 		/*
@@ -4819,7 +4817,7 @@ change:
 		}
 #endif
 	}
-	printk("%d in set sched! 12\n", p->pid);
+	//printk("%d in set sched! 12\n", p->pid);
 	/* Re-check policy now with rq lock held: */
 	if (unlikely(oldpolicy != -1 && oldpolicy != p->policy)) {
 		policy = oldpolicy = -1;
@@ -4839,7 +4837,7 @@ change:
 
 	p->sched_reset_on_fork = reset_on_fork;
 	oldprio = p->prio;
-	printk("%d in set sched! 13\n", p->pid);
+	//printk("%d in set sched! 13\n", p->pid);
 	if (pi) {
 		/*
 		 * Take priority boosted tasks into account. If the new
@@ -4858,7 +4856,7 @@ change:
 		 * function as a priority inheritance passthrough, thus we cannot simply turn
 		 * off all pi code.
 		 */
-		printk("%d in set sched! 14\n", p->pid);
+		//printk("%d in set sched! 14\n", p->pid);
 		if (!microq_policy(policy) && !microq_policy(oldpolicy) &&
 		    new_effective_prio == oldprio)
 #else
@@ -4866,7 +4864,7 @@ change:
 #endif
 			queue_flags &= ~DEQUEUE_MOVE;
 	}
-	printk("%d in set sched! 15\n", p->pid);
+	//printk("%d in set sched! 15\n", p->pid);
 	queued = task_on_rq_queued(p);
 	running = task_current(rq, p);
 	if (queued)
@@ -4878,9 +4876,9 @@ change:
 
 	__setscheduler(rq, p, attr, pi);
 	__setscheduler_uclamp(p, attr);
-	printk("%d in set sched! 16\n", p->pid);
+	//printk("%d in set sched! 16\n", p->pid);
 	if (queued) {
-		printk("%d in set sched! 17\n", p->pid);
+		//printk("%d in set sched! 17\n", p->pid);
 		/*
 		 * We enqueue to tail when the priority of a task is
 		 * increased (user space view).
@@ -4892,7 +4890,7 @@ change:
 	}
 	if (running)
 		set_curr_task(rq, p);
-	printk("%d in set sched! 18\n", p->pid);
+	//printk("%d in set sched! 18\n", p->pid);
 	check_class_changed(rq, p, prev_class, oldprio);
 
 	/* Avoid rq from going away on us: */
@@ -4905,7 +4903,7 @@ change:
 	/* Run balance callbacks after we've adjusted the PI chain: */
 	balance_callback(rq);
 	preempt_enable();
-	printk("%d in set sched! 19!\n", p->pid);
+	//printk("%d in set sched! 19!\n", p->pid);
 	return 0;
 }
 
@@ -5308,6 +5306,75 @@ SYSCALL_DEFINE4(sched_getattr, pid_t, pid, struct sched_attr __user *, uattr,
 out_unlock:
 	rcu_read_unlock();
 	return retval;
+}
+
+/**
+ * sys_microq_getparams - get the process-specific microquanta period and runtime
+ * @pid: the pid in question.
+ * @period: period
+ * @runtime: runtime
+ *
+ * Return: 0 on success. An error code otherwise.
+ */
+SYSCALL_DEFINE3(microq_getparams, pid_t, pid, unsigned int __user *, period, unsigned int __user *, runtime)
+{
+	struct task_struct *p;
+	if (pid < 0)
+		return -EINVAL;
+#ifdef CONFIG_SCHED_CLASS_MICROQ
+
+	rcu_read_lock();
+	p = find_process_by_pid(pid);
+	if (p != NULL)
+	{
+		if (copy_to_user(period, p->microq.sched_period, sizeof(unsigned int)))
+			return -EFAULT;
+		if (copy_to_user(runtime, p->microq.sched_runtime, sizeof(unsigned int)))
+			return -EFAULT;
+	}
+	else
+		return -ESRCH;
+	rcu_read_unlock();
+#endif
+
+	return 0;
+}
+
+/**
+ * sys_microq_getparams - set the process-specific microquanta period and runtime
+ * @pid: the pid in question.
+ * @period: period
+ * @runtime: runtime
+ *
+ * Return: 0 on success. An error code otherwise.
+ */
+SYSCALL_DEFINE3(microq_setparams, pid_t, pid, unsigned int , period, unsigned int , runtime)
+{
+	struct task_struct *p;
+	struct microq_rq *microq_rq;
+	if (pid < 0)
+		return -EINVAL;
+
+	if (period < 2 || runtime < 1)
+		return -EINVAL;
+#ifdef CONFIG_SCHED_CLASS_MICROQ
+
+	rcu_read_lock();
+	p = find_process_by_pid(pid);
+	if (p != NULL)
+	{
+		microq_rq = &task_rq(p)->microq;
+		p->microq.sched_period = period * 1000;
+		p->microq.sched_runtime = runtime * 1000;
+		microq_rq->microq_period = p->microq.sched_period;
+		microq_rq->microq_runtime = p->microq.sched_runtime;
+	}
+	else
+		return -ESRCH;
+	rcu_read_unlock();
+#endif
+
+	return 0;
 }
 
 long sched_setaffinity(pid_t pid, const struct cpumask *in_mask)
