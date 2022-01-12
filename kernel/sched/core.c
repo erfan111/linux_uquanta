@@ -4723,7 +4723,7 @@ recheck:
 	}
 	//printk("%d in set sched! 4\n", p->pid);
 	if (user) {
-		printk("%d in set sched! 5\n", p->pid);
+		//printk("%d in set sched! 5\n", p->pid);
 		if (attr->sched_flags & SCHED_FLAG_SUGOV)
 			return -EINVAL;
 

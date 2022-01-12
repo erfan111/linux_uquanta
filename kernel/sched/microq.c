@@ -88,6 +88,7 @@ static inline void get_microq_bandwidth(struct microq_rq *microq_rq, int *period
 		if (*runtime != MICROQ_BANDWIDTH_UNDEFINED) /* if runtime != unlimited */
 			*runtime = max(MICROQ_MIN_RUNTIME, *runtime);
 	}
+	// printk_ratelimited("Microquanta period=%d, runtime=%d\n", *period, *runtime);
 }
 
 static inline int microq_timer_needed(struct microq_rq *microq_rq)
@@ -158,10 +159,12 @@ static void check_microq_timer(struct rq *rq)
 		microq_rq->microq_throttled = 1;
 		expire = microq_rq->microq_time - microq_rq->microq_target_time;
 		expire = max(expire, period - runtime);
+		// microq_rq->throttle_count++;
 	}
 	microq_rq->period_count = 0;
 	microq_rq->periods_to_jiffies = (jiffies_to_usecs(1) * 1000) / period;
 	microq_rq->periods_to_jiffies = max(1U, microq_rq->periods_to_jiffies);
+	// microq_rq->total_count++;
 
 	hrtimer_start_range_ns(&microq_rq->microq_period_timer, ns_to_ktime(expire), 0,
 			 HRTIMER_MODE_REL_PINNED);
@@ -392,9 +395,11 @@ static struct task_struct *pick_next_task_microq(struct rq *rq, struct task_stru
 
 	if (!microq_rq->microq_nr_running)
 		return NULL;
+	// microq_rq->total_count++;
 	if (microq_timer_needed(microq_rq)) {
 		check_microq_timer(rq);
 		if (microq_rq->microq_throttled) { 
+			// microq_rq->throttle_count++;
 			return NULL;
 
 		}
@@ -609,6 +614,9 @@ static void rq_online_microq(struct rq *rq)
 	microq_rq->quanta_start = 0;
 	microq_rq->delta_exec_uncharged = 0;
 	microq_rq->delta_exec_total = 0;
+	// =e
+	microq_rq->total_count = 0;
+	microq_rq->throttle_count = 0;
 }
 
 static int select_task_rq_microq(struct task_struct *p, int cpu, int sd_flag, int flags)
@@ -646,7 +654,7 @@ out:
 
 static void switched_to_microq(struct rq *rq, struct task_struct *p)
 {
-	printk("switched to microquanta cpu %d for task %d\n", rq->cpu, p->pid);
+	//printk("switched to microquanta cpu %d for task %d\n", rq->cpu, p->pid);
 #ifdef CONFIG_SMP
 	if (p->on_rq && rq->curr != p) {
 		rq->microq.last_push_failed = 0;

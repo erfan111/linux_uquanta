@@ -630,6 +630,10 @@ void print_microq_rq(struct seq_file *m, int cpu, struct microq_rq *microq_rq)
 	P(last_push_failed);
 	PN(quanta_start);
 	P(delta_exec_uncharged);
+	// =e
+	P(throttle_count);
+	P(total_count);
+	//
 
 #undef PN
 #undef P
